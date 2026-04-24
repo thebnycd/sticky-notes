@@ -5,7 +5,7 @@ import win32gui
 from PyQt6.QtWidgets import QApplication, QDialog, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QPainter, QAction
 from PyQt6.QtGui import QPolygonF
-from PyQt6.QtCore import Qt, QPoint, QPointF
+from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer
 
 from notes_manager import NotesManager
 from note_window import NoteWindow
@@ -60,6 +60,13 @@ class App:
         self.cur_hwnd    = 0
         self._overlay: PinOverlay | None = None
         self._hotkey_thread: HotkeyThread | None = None
+        self._pending: tuple[str, str, int] = ("", "", 0)
+
+        # Debounce: apply window change only after 250ms of stability
+        self._debounce = QTimer()
+        self._debounce.setSingleShot(True)
+        self._debounce.setInterval(250)
+        self._debounce.timeout.connect(self._apply_window_change)
 
         self._setup_tray()
         self._load_notes()
@@ -154,7 +161,8 @@ class App:
             pin_value=title,
         )
         win = self._make_window(note, visible=True)
-        win.text_edit.setFocus()
+        win.activateWindow()
+        QTimer.singleShot(50, win.text_edit.setFocus)
 
     # ── Notes ──────────────────────────────────────────────────────
 
@@ -190,6 +198,11 @@ class App:
         self.monitor.start()
 
     def _on_window_changed(self, process_name: str, window_title: str, hwnd: int):
+        self._pending = (process_name, window_title, hwnd)
+        self._debounce.start()   # restarts timer on every rapid switch
+
+    def _apply_window_change(self):
+        process_name, window_title, hwnd = self._pending
         self.cur_process = process_name
         self.cur_title   = window_title
         self.cur_hwnd    = hwnd
