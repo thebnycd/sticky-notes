@@ -30,7 +30,7 @@ def _build_tray_icon() -> QIcon:
 
     # folded corner
     p.setBrush(QColor("#D4D400"))
-    from PyQt6.QtCore import QPolygonF
+    from PyQt6.QtGui import QPolygonF
     from PyQt6.QtCore import QPointF
     fold = QPolygonF([QPointF(4, 12), QPointF(24, 12), QPointF(4, 30)])
     p.drawPolygon(fold)
