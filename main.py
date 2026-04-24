@@ -2,15 +2,23 @@ import sys
 import os
 
 import win32gui
+import keyboard
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QPixmap, QColor, QPainter, QAction
 from PyQt6.QtGui import QPolygonF
-from PyQt6.QtCore import Qt, QPoint, QPointF
+from PyQt6.QtCore import Qt, QPoint, QPointF, QObject, pyqtSignal
 
 from notes_manager import NotesManager
 from note_window import NoteWindow
 from window_monitor import WindowMonitor
 from pin_overlay import PinOverlay
+
+
+class GlobalHotkey(QObject):
+    triggered = pyqtSignal()
+
+    def register(self, hotkey: str):
+        keyboard.add_hotkey(hotkey, self.triggered.emit)
 
 
 DATA_PATH = os.path.join(os.path.expanduser("~"), ".sticky_notes", "notes.json")
@@ -57,6 +65,7 @@ class App:
         self._setup_tray()
         self._load_notes()
         self._start_monitor()
+        self._setup_hotkey()
 
     # ── Tray ───────────────────────────────────────────────────────
 
@@ -109,10 +118,10 @@ class App:
     def _on_window_picked(self, process_name: str, title: str, hwnd: int):
         self._overlay = None
 
-        # Position note at top-left of the picked window
+        # Position note at top-right of the picked window
         try:
             rect = win32gui.GetWindowRect(hwnd)
-            note_x = rect[0] + 10
+            note_x = rect[2] - 270  # rect[2] = right edge, 260 = note width + margin
             note_y = rect[1] + 40
         except Exception:
             note_x, note_y = 120, 120
@@ -150,6 +159,13 @@ class App:
 
     def _on_deleted(self, note_id: str):
         self.note_windows.pop(note_id, None)
+
+    # ── Global hotkey ──────────────────────────────────────────────
+
+    def _setup_hotkey(self):
+        self._hotkey = GlobalHotkey()
+        self._hotkey.triggered.connect(self.start_pin_mode)
+        self._hotkey.register("alt+q")
 
     # ── Window monitor ─────────────────────────────────────────────
 

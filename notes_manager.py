@@ -14,7 +14,7 @@ class Note:
     height: int
     pin_type: str   # "app" or "window"
     pin_value: str  # process name (e.g. "chrome.exe") or window title
-    color: str = "#FEFF9C"
+    color: str = "#BAE1FF"
     hidden: bool = False
 
 
