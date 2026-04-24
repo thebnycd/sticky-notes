@@ -6,6 +6,17 @@ import psutil
 
 OWN_PID = os.getpid()
 
+# System windows that should hide all notes (taskbar, Start, desktop, etc.)
+SYSTEM_CLASSES = frozenset({
+    "Shell_TrayWnd",           # taskbar
+    "Shell_SecondaryTrayWnd",  # taskbar on second monitor
+    "Windows.UI.Core.CoreWindow",  # Start menu / Action Center
+    "Progman",                 # desktop
+    "WorkerW",                 # desktop worker
+    "DV2ControlHost",          # Start menu search
+    "TaskListThumbnailWnd",    # taskbar thumbnail preview
+})
+
 
 class WindowMonitor(QThread):
     window_changed = pyqtSignal(str, str, int)  # process_name, window_title, hwnd
@@ -21,13 +32,23 @@ class WindowMonitor(QThread):
             if hwnd and hwnd != last_hwnd:
                 pid = self._get_pid(hwnd)
                 if pid == OWN_PID:
-                    # our own note window gained focus — ignore
                     self.msleep(300)
                     continue
                 last_hwnd = hwnd
-                title = win32gui.GetWindowText(hwnd)
-                process_name = self._get_process_name(pid)
-                self.window_changed.emit(process_name, title, hwnd)
+
+                # Taskbar / Start / desktop → emit empty strings to hide all notes
+                try:
+                    cls = win32gui.GetClassName(hwnd)
+                except Exception:
+                    cls = ""
+
+                if cls in SYSTEM_CLASSES:
+                    self.window_changed.emit("", "", 0)
+                else:
+                    title = win32gui.GetWindowText(hwnd)
+                    process_name = self._get_process_name(pid)
+                    self.window_changed.emit(process_name, title, hwnd)
+
             self.msleep(300)
 
     def _get_pid(self, hwnd: int) -> int:
