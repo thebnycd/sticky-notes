@@ -16,8 +16,8 @@ PrivilegesRequired=lowest
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Дополнительно:"; Flags: checked
-Name: "startup"; Description: "Запускать автоматически при входе в Windows"; GroupDescription: "Дополнительно:"; Flags: checked
+Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Дополнительно:"
+Name: "startup"; Description: "Запускать автоматически при входе в Windows"; GroupDescription: "Дополнительно:"
 
 [Files]
 Source: "dist\StickyNotes.exe"; DestDir: "{app}"; Flags: ignoreversion
