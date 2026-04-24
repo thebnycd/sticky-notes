@@ -1,9 +1,9 @@
-name: Build Windows EXE
+name: Build Windows Installer
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # кнопка ручного запуска на GitHub
+  workflow_dispatch:
 
 jobs:
   build:
@@ -25,11 +25,19 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --onefile --windowed --name "StickyNotes" --icon=NONE main.py
+          pyinstaller --onefile --windowed --name "StickyNotes" main.py
 
-      - name: Upload EXE artifact
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        shell: pwsh
+
+      - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: StickyNotes-Windows
-          path: dist/StickyNotes.exe
+          name: StickyNotes-Setup
+          path: Output\StickyNotes-Setup.exe
           retention-days: 30
