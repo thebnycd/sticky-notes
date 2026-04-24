@@ -19,20 +19,13 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
+        run: pip install -r requirements.txt pyinstaller
 
       - name: Build EXE
-        run: |
-          pyinstaller --onefile --windowed --name "StickyNotes" main.py
-
-      - name: Install Inno Setup
-        run: choco install innosetup -y
+        run: pyinstaller --onefile --windowed --name "StickyNotes" main.py
 
       - name: Build Installer
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
         shell: pwsh
 
       - name: Upload Installer
