@@ -22,7 +22,7 @@ jobs:
         run: pip install -r requirements.txt pyinstaller
 
       - name: Build EXE
-        run: pyinstaller --onefile --windowed --name "StickyNotes" main.py
+        run: pyinstaller --onefile --windowed --name "AzNote" main.py
 
       - name: Build Installer
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
@@ -31,6 +31,6 @@ jobs:
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: StickyNotes-Setup
-          path: Output\StickyNotes-Setup.exe
+          name: AzNote-Setup
+          path: Output\AzNote-Setup.exe
           retention-days: 30
