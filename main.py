@@ -2,16 +2,15 @@ import sys
 import os
 
 import win32gui
-from PyQt6.QtWidgets import (
-    QApplication, QDialog, QSystemTrayIcon, QMenu, QMessageBox,
-)
-from PyQt6.QtGui import QIcon, QPixmap, QColor, QPainter, QFont, QAction
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PyQt6.QtGui import QIcon, QPixmap, QColor, QPainter, QAction
+from PyQt6.QtGui import QPolygonF
+from PyQt6.QtCore import Qt, QPoint, QPointF
 
 from notes_manager import NotesManager
 from note_window import NoteWindow
 from window_monitor import WindowMonitor
-from pin_dialog import PinDialog
+from pin_overlay import PinOverlay
 
 
 DATA_PATH = os.path.join(os.path.expanduser("~"), ".sticky_notes", "notes.json")
@@ -23,27 +22,20 @@ def _build_tray_icon() -> QIcon:
     p = QPainter(pix)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-    # note body
     p.setBrush(QColor("#FEFF9C"))
     p.setPen(QColor("#C8C800"))
     p.drawRoundedRect(4, 12, 56, 50, 5, 5)
 
-    # folded corner
     p.setBrush(QColor("#D4D400"))
-    from PyQt6.QtGui import QPolygonF
-    from PyQt6.QtCore import QPointF
     fold = QPolygonF([QPointF(4, 12), QPointF(24, 12), QPointF(4, 30)])
     p.drawPolygon(fold)
 
-    # pin head
     p.setBrush(QColor("#E03030"))
     p.setPen(Qt.PenStyle.NoPen)
     p.drawEllipse(QPoint(32, 8), 7, 7)
     p.setPen(QColor("#B02020"))
-    p.setBrush(QColor("#C02020"))
     p.drawLine(32, 15, 32, 24)
 
-    # lines on note
     p.setPen(QColor("#999900"))
     for y in (30, 39, 48):
         p.drawLine(12, y, 52, y)
@@ -57,11 +49,10 @@ class App:
         self.qapp = qapp
         self.manager = NotesManager(DATA_PATH)
         self.note_windows: dict[str, NoteWindow] = {}
-
-        # currently active external window
         self.cur_process = ""
         self.cur_title = ""
         self.cur_hwnd = 0
+        self._overlay: PinOverlay | None = None
 
         self._setup_tray()
         self._load_notes()
@@ -71,13 +62,13 @@ class App:
 
     def _setup_tray(self):
         self.tray = QSystemTrayIcon(_build_tray_icon(), self.qapp)
-        self.tray.setToolTip("Sticky Notes")
+        self.tray.setToolTip("Sticky Notes — кликните чтобы прикрепить заметку")
 
         menu = QMenu()
 
-        act_new = QAction("📝  Новая заметка для текущего окна", menu)
-        act_new.triggered.connect(self.new_note)
-        menu.addAction(act_new)
+        act_pin = QAction("📌  Прикрепить заметку на окно", menu)
+        act_pin.triggered.connect(self.start_pin_mode)
+        menu.addAction(act_pin)
 
         menu.addSeparator()
 
@@ -101,7 +92,38 @@ class App:
 
     def _tray_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            self.new_note()
+            self.start_pin_mode()
+
+    # ── Pin mode ───────────────────────────────────────────────────
+
+    def start_pin_mode(self):
+        if self._overlay is not None:
+            return  # already active
+        self._overlay = PinOverlay()
+        self._overlay.window_picked.connect(self._on_window_picked)
+        self._overlay.cancelled.connect(self._on_pin_cancelled)
+
+    def _on_pin_cancelled(self):
+        self._overlay = None
+
+    def _on_window_picked(self, process_name: str, title: str, hwnd: int):
+        self._overlay = None
+
+        # Position note at top-left of the picked window
+        try:
+            rect = win32gui.GetWindowRect(hwnd)
+            note_x = rect[0] + 10
+            note_y = rect[1] + 40
+        except Exception:
+            note_x, note_y = 120, 120
+
+        note = self.manager.create_note(
+            content="", x=note_x, y=note_y,
+            pin_type="app",
+            pin_value=process_name,
+        )
+        win = self._make_window(note, visible=True)
+        win.text_edit.setFocus()
 
     # ── Notes ──────────────────────────────────────────────────────
 
@@ -117,34 +139,6 @@ class App:
             win.show()
             win.raise_()
         return win
-
-    def new_note(self):
-        if not self.cur_process and not self.cur_title:
-            QMessageBox.information(
-                None, "Нет активного окна",
-                "Сначала переключитесь на нужное окно,\nзатем нажмите «Новая заметка».",
-            )
-            return
-
-        dlg = PinDialog(self.cur_process, self.cur_title)
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        x, y = self._note_spawn_pos()
-        note = self.manager.create_note(
-            content="", x=x, y=y,
-            pin_type=dlg.pin_type,
-            pin_value=dlg.pin_value,
-        )
-        win = self._make_window(note, visible=True)
-        win.text_edit.setFocus()
-
-    def _note_spawn_pos(self) -> tuple[int, int]:
-        try:
-            rect = win32gui.GetWindowRect(self.cur_hwnd)
-            return rect[0] + 10, rect[1] + 40
-        except Exception:
-            return 120, 120
 
     def show_all(self):
         for win in self.note_windows.values():
@@ -189,6 +183,7 @@ def main():
     app.setQuitOnLastWindowClosed(False)
 
     if not QSystemTrayIcon.isSystemTrayAvailable():
+        from PyQt6.QtWidgets import QMessageBox
         QMessageBox.critical(None, "Ошибка", "Системный трей недоступен.")
         sys.exit(1)
 
