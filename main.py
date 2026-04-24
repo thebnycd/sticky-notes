@@ -119,8 +119,8 @@ class App:
 
         note = self.manager.create_note(
             content="", x=note_x, y=note_y,
-            pin_type="app",
-            pin_value=process_name,
+            pin_type="window",
+            pin_value=title,
         )
         win = self._make_window(note, visible=True)
         win.text_edit.setFocus()
