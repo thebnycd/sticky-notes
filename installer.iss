@@ -20,7 +20,7 @@ Name: "desktopicon"; Description: "Создать ярлык на рабочем
 Name: "startup"; Description: "Запускать автоматически при входе в Windows"; GroupDescription: "Дополнительно:"
 
 [Files]
-Source: "dist\StickyNotes.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\AzNote.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Az Note"; Filename: "{app}\AzNote.exe"
