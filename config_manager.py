@@ -3,6 +3,8 @@ import os
 
 DEFAULTS = {
     "hotkey": "Alt+Q",
+    "font_size": 10,
+    "close_with_window": False,
 }
 
 
@@ -32,4 +34,22 @@ class ConfigManager:
     @hotkey.setter
     def hotkey(self, value: str):
         self.data["hotkey"] = value
+        self.save()
+
+    @property
+    def font_size(self) -> int:
+        return int(self.data.get("font_size", DEFAULTS["font_size"]))
+
+    @font_size.setter
+    def font_size(self, value: int):
+        self.data["font_size"] = value
+        self.save()
+
+    @property
+    def close_with_window(self) -> bool:
+        return bool(self.data.get("close_with_window", DEFAULTS["close_with_window"]))
+
+    @close_with_window.setter
+    def close_with_window(self, value: bool):
+        self.data["close_with_window"] = value
         self.save()

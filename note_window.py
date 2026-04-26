@@ -81,6 +81,7 @@ class NoteWindow(QWidget):
         self.text_edit.setPlaceholderText("Напишите заметку…")
         self.text_edit.textChanged.connect(self._on_text_changed)
         root.addWidget(self.text_edit, 1)
+        self._font_size = 10
 
         # ── Resize grip ────────────────────────────────────────────
         grip_row = QHBoxLayout()
@@ -90,6 +91,10 @@ class NoteWindow(QWidget):
         grip.setFixedSize(16, 16)
         grip_row.addWidget(grip)
         root.addLayout(grip_row)
+
+    def set_font_size(self, size: int):
+        self._font_size = size
+        self.text_edit.setFont(QFont("Segoe UI", size))
 
     def _update_pin_label(self):
         kind = self.pin_label_map.get(self.note.pin_type, "")

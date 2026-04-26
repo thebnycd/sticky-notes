@@ -29,14 +29,22 @@ class WindowMonitor(QThread):
         last_hwnd = None
         while self._running:
             hwnd = win32gui.GetForegroundWindow()
-            if hwnd and hwnd != last_hwnd:
+
+            # No foreground window = all windows minimised / desktop shown
+            if not hwnd:
+                if last_hwnd != 0:
+                    last_hwnd = 0
+                    self.window_changed.emit("", "", 0)
+                self.msleep(300)
+                continue
+
+            if hwnd != last_hwnd:
                 pid = self._get_pid(hwnd)
                 if pid == OWN_PID:
                     self.msleep(300)
                     continue
                 last_hwnd = hwnd
 
-                # Taskbar / Start / desktop → emit empty strings to hide all notes
                 try:
                     cls = win32gui.GetClassName(hwnd)
                 except Exception:

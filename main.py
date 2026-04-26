@@ -26,25 +26,20 @@ def _build_tray_icon() -> QIcon:
     pix.fill(Qt.GlobalColor.transparent)
     p = QPainter(pix)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
-
     p.setBrush(QColor("#BAE1FF"))
     p.setPen(QColor("#5BA8D4"))
     p.drawRoundedRect(4, 12, 56, 50, 5, 5)
-
     p.setBrush(QColor("#5BA8D4"))
     fold = QPolygonF([QPointF(4, 12), QPointF(24, 12), QPointF(4, 30)])
     p.drawPolygon(fold)
-
     p.setBrush(QColor("#E03030"))
     p.setPen(Qt.PenStyle.NoPen)
     p.drawEllipse(QPoint(32, 8), 7, 7)
     p.setPen(QColor("#B02020"))
     p.drawLine(32, 15, 32, 24)
-
     p.setPen(QColor("#3A88BB"))
     for y in (30, 39, 48):
         p.drawLine(12, y, 52, y)
-
     p.end()
     return QIcon(pix)
 
@@ -62,7 +57,6 @@ class App:
         self._hotkey_thread: HotkeyThread | None = None
         self._pending: tuple[str, str, int] = ("", "", 0)
 
-        # Debounce: apply window change only after 250ms of stability
         self._debounce = QTimer()
         self._debounce.setSingleShot(True)
         self._debounce.setInterval(250)
@@ -77,32 +71,25 @@ class App:
 
     def _setup_tray(self):
         self.tray = QSystemTrayIcon(_build_tray_icon(), self.qapp)
-        self.tray.setToolTip(f"{APP_NAME} — Alt+Q для прикрепления")
+        hk = self.config.hotkey
+        self.tray.setToolTip(f"{APP_NAME} — {hk} для прикрепления")
 
         menu = QMenu()
-
         act_pin = QAction("📌  Прикрепить заметку на окно", menu)
         act_pin.triggered.connect(self.start_pin_mode)
         menu.addAction(act_pin)
-
         menu.addSeparator()
-
         act_show = QAction("👁  Показать все заметки", menu)
         act_show.triggered.connect(self.show_all)
         menu.addAction(act_show)
-
         act_hide = QAction("🙈  Скрыть все заметки", menu)
         act_hide.triggered.connect(self.hide_all)
         menu.addAction(act_hide)
-
         menu.addSeparator()
-
         act_settings = QAction("⚙️  Настройки", menu)
         act_settings.triggered.connect(self.open_settings)
         menu.addAction(act_settings)
-
         menu.addSeparator()
-
         act_quit = QAction("✕  Выход", menu)
         act_quit.triggered.connect(self.qapp.quit)
         menu.addAction(act_quit)
@@ -118,12 +105,22 @@ class App:
     # ── Settings ───────────────────────────────────────────────────
 
     def open_settings(self):
-        dlg = SettingsDialog(self.config.hotkey)
-        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.new_hotkey:
+        dlg = SettingsDialog(self.config)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        if dlg.new_hotkey:
             new_hk = hotkey_to_str(dlg.new_hotkey)
             self.config.hotkey = new_hk
             self._apply_hotkey(new_hk)
             self.tray.setToolTip(f"{APP_NAME} — {new_hk} для прикрепления")
+
+        self.config.font_size = dlg.new_font_size
+        self.config.close_with_window = dlg.new_close_with_window
+
+        # Apply new font size to all open notes immediately
+        for win in self.note_windows.values():
+            win.set_font_size(dlg.new_font_size)
 
     # ── Hotkey ─────────────────────────────────────────────────────
 
@@ -150,8 +147,11 @@ class App:
         self._overlay = None
         try:
             rect = win32gui.GetWindowRect(hwnd)
-            note_x = rect[2] - 460   # top-right, shifted ~200px left
-            note_y = rect[1] + 40
+            # Position: right side of window, shifted down and slightly more right
+            note_x = rect[2] - 330          # 3-4 cm more to the right vs before
+            note_y = rect[1] + 740          # 18-20 cm down from top
+            # Clamp so note doesn't go below screen
+            note_y = min(note_y, rect[3] - 230)
         except Exception:
             note_x, note_y = 120, 120
 
@@ -161,6 +161,7 @@ class App:
             pin_value=title,
         )
         win = self._make_window(note, visible=True)
+        win.set_font_size(self.config.font_size)
         win.activateWindow()
         QTimer.singleShot(50, win.text_edit.setFocus)
 
@@ -168,7 +169,8 @@ class App:
 
     def _load_notes(self):
         for note in self.manager.get_all():
-            self._make_window(note, visible=False)
+            win = self._make_window(note, visible=False)
+            win.set_font_size(self.config.font_size)
 
     def _make_window(self, note, visible: bool = False) -> NoteWindow:
         win = NoteWindow(note, self.manager)
@@ -199,10 +201,24 @@ class App:
 
     def _on_window_changed(self, process_name: str, window_title: str, hwnd: int):
         self._pending = (process_name, window_title, hwnd)
-        self._debounce.start()   # restarts timer on every rapid switch
+        self._debounce.start()
 
     def _apply_window_change(self):
         process_name, window_title, hwnd = self._pending
+
+        # close_with_window: if the previously active pinned window is now gone/minimized
+        if self.config.close_with_window and self.cur_hwnd:
+            prev_active = self.manager.get_for_window(self.cur_process, self.cur_title)
+            if prev_active:
+                try:
+                    is_gone     = not win32gui.IsWindow(self.cur_hwnd)
+                    is_minimized = win32gui.IsIconic(self.cur_hwnd)
+                    if is_gone or is_minimized:
+                        for note in prev_active:
+                            self.manager.update(note.id, hidden=True)
+                except Exception:
+                    pass
+
         self.cur_process = process_name
         self.cur_title   = window_title
         self.cur_hwnd    = hwnd
