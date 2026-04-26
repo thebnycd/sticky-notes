@@ -82,11 +82,12 @@ class SettingsDialog(QDialog):
         font_row.addStretch()
         layout.addLayout(font_row)
 
+
         layout.addWidget(self._sep())
 
         # ── Close with window ───────────────────────────────
         self.chk_close = QCheckBox(
-            "Удалять заметку когда окно закрывается / сворачивается"
+            "Удалять заметку при закрытии окна крестиком"
         )
         self.chk_close.setFont(QFont("Segoe UI", 10))
         self.chk_close.setChecked(self.config.close_with_window)
@@ -122,7 +123,8 @@ class SettingsDialog(QDialog):
         return sep
 
     def _save(self):
-        self.new_hotkey           = self.capture.text()
-        self.new_font_size        = self.spin_font.value()
+        self.new_hotkey            = self.capture.text()
+        self.new_font_size         = self.spin_font.value()
+        self.new_close_with_window = self.chk_close.isChecked()
         self.new_close_with_window = self.chk_close.isChecked()
         self.accept()

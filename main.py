@@ -115,8 +115,8 @@ class App:
             self._apply_hotkey(new_hk)
             self.tray.setToolTip(f"{APP_NAME} — {new_hk} для прикрепления")
 
-        self.config.font_size = dlg.new_font_size
-        self.config.close_with_window = dlg.new_close_with_window
+        self.config.font_size          = dlg.new_font_size
+        self.config.close_with_window  = dlg.new_close_with_window
 
         # Apply new font size to all open notes immediately
         for win in self.note_windows.values():
@@ -206,14 +206,16 @@ class App:
     def _apply_window_change(self):
         process_name, window_title, hwnd = self._pending
 
-        # close_with_window: if the previously active pinned window is now gone/minimized
+        # If previous pinned window was CLOSED (X button) and setting is ON → delete notes
         if self.config.close_with_window and self.cur_hwnd:
             prev_active = self.manager.get_for_window(self.cur_process, self.cur_title)
             if prev_active:
                 try:
-                    is_gone      = not win32gui.IsWindow(self.cur_hwnd)
-                    is_minimized = win32gui.IsIconic(self.cur_hwnd)
-                    if is_gone or is_minimized:
+                    window_closed = (
+                        not win32gui.IsWindow(self.cur_hwnd) or
+                        not win32gui.IsWindowVisible(self.cur_hwnd)
+                    ) and not win32gui.IsIconic(self.cur_hwnd)
+                    if window_closed:
                         for note in prev_active:
                             self.manager.delete(note.id)
                             win = self.note_windows.pop(note.id, None)
