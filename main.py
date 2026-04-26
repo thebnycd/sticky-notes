@@ -211,11 +211,14 @@ class App:
             prev_active = self.manager.get_for_window(self.cur_process, self.cur_title)
             if prev_active:
                 try:
-                    is_gone     = not win32gui.IsWindow(self.cur_hwnd)
+                    is_gone      = not win32gui.IsWindow(self.cur_hwnd)
                     is_minimized = win32gui.IsIconic(self.cur_hwnd)
                     if is_gone or is_minimized:
                         for note in prev_active:
-                            self.manager.update(note.id, hidden=True)
+                            self.manager.delete(note.id)
+                            win = self.note_windows.pop(note.id, None)
+                            if win:
+                                win.close()
                 except Exception:
                     pass
 

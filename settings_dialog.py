@@ -86,7 +86,7 @@ class SettingsDialog(QDialog):
 
         # ── Close with window ───────────────────────────────
         self.chk_close = QCheckBox(
-            "Скрывать заметку когда окно закрывается / сворачивается"
+            "Удалять заметку когда окно закрывается / сворачивается"
         )
         self.chk_close.setFont(QFont("Segoe UI", 10))
         self.chk_close.setChecked(self.config.close_with_window)
