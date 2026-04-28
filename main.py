@@ -217,10 +217,7 @@ class App:
             prev_active = self.manager.get_for_window(self.cur_process, self.cur_title)
             if prev_active:
                 try:
-                    window_closed = (
-                        not win32gui.IsWindow(self.cur_hwnd) or
-                        not win32gui.IsWindowVisible(self.cur_hwnd)
-                    ) and not win32gui.IsIconic(self.cur_hwnd)
+                    window_closed = not win32gui.IsWindow(self.cur_hwnd)
                     if window_closed:
                         for note in prev_active:
                             self.manager.delete(note.id)
