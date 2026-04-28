@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QLineEdit, QFrame, QSpinBox, QCheckBox,
+    QPushButton, QLineEdit, QFrame, QSpinBox,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QKeySequence
@@ -40,7 +40,6 @@ class SettingsDialog(QDialog):
         self.config = config
         self.new_hotkey = config.hotkey
         self.new_font_size = config.font_size
-        self.new_close_with_window = config.close_with_window
         self._build()
 
     def _build(self):
@@ -82,18 +81,6 @@ class SettingsDialog(QDialog):
         font_row.addStretch()
         layout.addLayout(font_row)
 
-
-        layout.addWidget(self._sep())
-
-        # ── Close with window ───────────────────────────────
-        self.chk_close = QCheckBox(
-            "Удалять заметку при закрытии окна крестиком"
-        )
-        self.chk_close.setFont(QFont("Segoe UI", 10))
-        self.chk_close.setChecked(self.config.close_with_window)
-        self.chk_close.setWordWrap(True)
-        layout.addWidget(self.chk_close)
-
         layout.addStretch()
         layout.addWidget(self._sep())
 
@@ -123,8 +110,6 @@ class SettingsDialog(QDialog):
         return sep
 
     def _save(self):
-        self.new_hotkey            = self.capture.text()
-        self.new_font_size         = self.spin_font.value()
-        self.new_close_with_window = self.chk_close.isChecked()
-        self.new_close_with_window = self.chk_close.isChecked()
+        self.new_hotkey    = self.capture.text()
+        self.new_font_size = self.spin_font.value()
         self.accept()

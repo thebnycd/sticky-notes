@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QWidget, QTextEdit, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QSizeGrip, QMenu, QMessageBox,
+    QPushButton, QLabel, QSizeGrip, QMenu,
 )
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QAction, QPainter, QPen
@@ -161,15 +161,9 @@ class NoteWindow(QWidget):
         self.hide()
 
     def _delete_note(self):
-        reply = QMessageBox.question(
-            self, "Удалить заметку",
-            "Удалить эту заметку навсегда?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            self.manager.delete(self.note.id)
-            self.deleted.emit(self.note.id)
-            self.close()
+        self.manager.delete(self.note.id)
+        self.deleted.emit(self.note.id)
+        self.close()
 
     def reveal(self):
         """Show note and clear hidden flag."""

@@ -1,6 +1,7 @@
 [Setup]
+AppId={{A3F2D1C0-8E4B-4F9A-B6C7-2D5E0F1A3B8C}
 AppName=Az Note
-AppVersion=1.0
+AppVersion=1.1
 AppPublisher=thebnycd
 DefaultDirName={autopf}\AzNote
 DefaultGroupName=Az Note
@@ -9,7 +10,7 @@ OutputDir=Output
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\StickyNotes.exe
+UninstallDisplayIcon={app}\AzNote.exe
 PrivilegesRequired=lowest
 
 [Languages]
@@ -25,7 +26,7 @@ Source: "dist\AzNote.exe"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 Name: "{group}\Az Note"; Filename: "{app}\AzNote.exe"
 Name: "{group}\Удалить Az Note"; Filename: "{uninstallexe}"
-Name: "{commondesktop}\Az Note"; Filename: "{app}\AzNote.exe"; Tasks: desktopicon
+Name: "{userdesktop}\Az Note"; Filename: "{app}\AzNote.exe"; Tasks: desktopicon
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "AzNote"; ValueData: "{app}\AzNote.exe"; Flags: uninsdeletevalue; Tasks: startup

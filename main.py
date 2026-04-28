@@ -85,6 +85,9 @@ class App:
         act_hide = QAction("🙈  Скрыть все заметки", menu)
         act_hide.triggered.connect(self.hide_all)
         menu.addAction(act_hide)
+        act_delete_all = QAction("🗑  Удалить все заметки", menu)
+        act_delete_all.triggered.connect(self.delete_all)
+        menu.addAction(act_delete_all)
         menu.addSeparator()
         act_settings = QAction("⚙️  Настройки", menu)
         act_settings.triggered.connect(self.open_settings)
@@ -115,10 +118,8 @@ class App:
             self._apply_hotkey(new_hk)
             self.tray.setToolTip(f"{APP_NAME} — {new_hk} для прикрепления")
 
-        self.config.font_size          = dlg.new_font_size
-        self.config.close_with_window  = dlg.new_close_with_window
+        self.config.font_size = dlg.new_font_size
 
-        # Apply new font size to all open notes immediately
         for win in self.note_windows.values():
             win.set_font_size(dlg.new_font_size)
 
@@ -147,10 +148,8 @@ class App:
         self._overlay = None
         try:
             rect = win32gui.GetWindowRect(hwnd)
-            # Position: right side of window, shifted down and slightly more right
-            note_x = rect[2] - 330          # 3-4 cm more to the right vs before
-            note_y = rect[1] + 740          # 18-20 cm down from top
-            # Clamp so note doesn't go below screen
+            note_x = rect[2] - 330
+            note_y = rect[1] + 930          # ~23-25 cm down from top
             note_y = min(note_y, rect[3] - 230)
         except Exception:
             note_x, note_y = 120, 120
@@ -189,6 +188,13 @@ class App:
         for win in self.note_windows.values():
             win.hide()
 
+    def delete_all(self):
+        for note_id in list(self.note_windows.keys()):
+            self.manager.delete(note_id)
+            win = self.note_windows.pop(note_id, None)
+            if win:
+                win.close()
+
     def _on_deleted(self, note_id: str):
         self.note_windows.pop(note_id, None)
 
@@ -206,8 +212,8 @@ class App:
     def _apply_window_change(self):
         process_name, window_title, hwnd = self._pending
 
-        # If previous pinned window was CLOSED (X button) and setting is ON → delete notes
-        if self.config.close_with_window and self.cur_hwnd:
+        # If previous pinned window was CLOSED (X button) → delete its notes
+        if self.cur_hwnd:
             prev_active = self.manager.get_for_window(self.cur_process, self.cur_title)
             if prev_active:
                 try:
