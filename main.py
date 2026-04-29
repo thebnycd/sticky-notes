@@ -212,21 +212,6 @@ class App:
     def _apply_window_change(self):
         process_name, window_title, hwnd = self._pending
 
-        # If previous pinned window was CLOSED (X button) → delete its notes
-        if self.cur_hwnd:
-            prev_active = self.manager.get_for_window(self.cur_process, self.cur_title)
-            if prev_active:
-                try:
-                    window_closed = not win32gui.IsWindow(self.cur_hwnd)
-                    if window_closed:
-                        for note in prev_active:
-                            self.manager.delete(note.id)
-                            win = self.note_windows.pop(note.id, None)
-                            if win:
-                                win.close()
-                except Exception:
-                    pass
-
         self.cur_process = process_name
         self.cur_title   = window_title
         self.cur_hwnd    = hwnd
